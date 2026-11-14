@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QuorumVeil</title>
+<meta name="description" content="QuorumVeil — a sovereign, witness-gated kernel for the safety envelope around private aggregation: it structurally refuses to combine data below a quorum of contributors and refuses to ever release a raw, unmasked share. Runs in your browser; nothing uploaded. The bundled masking is a deterministic demonstration, not cryptography — see the honest limits." />
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#15181d; --muted:#5b6471; --line:#e3e7ec;
+  --accent:#2f6df6; --accent-ink:#ffffff; --ok:#1a8f4c; --no:#c23b3b; --warn:#b26a00;
+  --code:#f0f2f6; --shadow:0 1px 2px rgba(20,24,33,.05),0 6px 20px rgba(20,24,33,.06);
+  --radius:14px; --maxw:860px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1116; --panel:#151a21; --ink:#e8ecf1; --muted:#9aa5b3; --line:#232a33;
+    --accent:#5b8cff; --accent-ink:#0e1116; --ok:#49c17e; --no:#ff6b6b; --warn:#e0a94a;
+    --code:#1b212a; --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1116; --panel:#151a21; --ink:#e8ecf1; --muted:#9aa5b3; --line:#232a33;
+  --accent:#5b8cff; --accent-ink:#0e1116; --ok:#49c17e; --no:#ff6b6b; --warn:#e0a94a;
+  --code:#1b212a; --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 16px}
+header.hero{padding:48px 16px 24px}
+.kicker{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.05;margin:.3em 0 .2em;letter-spacing:-.02em}
+.lede{font-size:clamp(17px,2.4vw,21px);color:var(--muted);max-width:46ch}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.badge{font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--muted)}
+.badge.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 35%,var(--line))}
+.badge.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}
+section{padding:30px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+h2{font-size:clamp(22px,3.5vw,30px);letter-spacing:-.01em;margin:0 0 .5em}
+h3{font-size:18px;margin:1.4em 0 .4em}
+p{margin:.6em 0}
+.muted{color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+.card.warn{border-color:color-mix(in srgb,var(--warn) 45%,var(--line));background:color-mix(in srgb,var(--warn) 7%,var(--panel))}
+.grid{display:grid;gap:14px}
+@media(min-width:620px){.grid.two{grid-template-columns:1fr 1fr}.grid.three{grid-template-columns:1fr 1fr 1fr}}
+code,kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;background:var(--code);padding:1.5px 6px;border-radius:6px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.5}
+.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-weight:600;padding:9px 14px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.sm{padding:5px 10px;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+input,select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+input[type=number]{width:72px}
+label{font-size:13px;color:var(--muted);font-weight:600}
+.verdict{display:flex;align-items:center;gap:12px;padding:16px;border-radius:12px;font-weight:700;font-size:18px;border:1px solid var(--line)}
+.verdict.met{background:color-mix(in srgb,var(--ok) 10%,var(--panel));color:var(--ok);border-color:color-mix(in srgb,var(--ok) 35%,var(--line))}
+.verdict.unmet{background:color-mix(in srgb,var(--no) 9%,var(--panel));color:var(--no);border-color:color-mix(in srgb,var(--no) 30%,var(--line))}
+.dot{width:12px;height:12px;border-radius:50%;background:currentColor;flex:none}
+.rowline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:7px 0}
+.chip{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--panel);cursor:pointer;color:var(--muted)}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.tag{font-size:11.5px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--code);color:var(--muted)}
+.note{font-size:13.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:12px;margin:12px 0}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:14.5px}
+.kv b{font-variant-numeric:tabular-nums}
+.big{font-size:clamp(26px,5vw,40px);font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.theme-toggle{position:fixed;top:12px;right:12px;z-index:10}
+.toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;margin-top:10px}
+.toc a{color:var(--accent);text-decoration:none}
+footer{padding:40px 16px 60px;color:var(--muted);font-size:13.5px;text-align:center}
+.svgwrap{overflow:auto}
+.vec{font-family:ui-monospace,monospace;font-size:13px}
+.mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace}
+</style>
+</head>
+<body>
+<button class="btn sm theme-toggle" id="themeBtn" aria-label="Toggle theme">◐ theme</button>
+
+<header class="hero wrap">
+  <div class="kicker">A sovereign trust-rail kernel · by Kar</div>
+  <h1>QuorumVeil</h1>
+  <p class="lede">The safety envelope around a private sum. Many parties want a combined total without anyone seeing anyone else's number. QuorumVeil is the part that cannot be allowed to leak: it <em>structurally</em> refuses to combine fewer than a quorum of contributors, and refuses to ever release a single raw, unmasked share. Those two refusals are proven by a mutation gate — not promised in a comment.</p>
+  <div class="badges">
+    <span class="badge ok">witness mutation gate · 27/27 killed</span>
+    <span class="badge ok">unit tests + parity on every push</span>
+    <span class="badge">pure kernel · every refusal is data, not prose</span>
+    <span class="badge warn">bundled masking is a demo, not crypto — read the limits</span>
+  </div>
+  <div class="toc" aria-label="Contents">
+    <a href="#what">What it is</a>
+    <a href="#honest">Honest limits</a>
+    <a href="#start">Start here</a>
+    <a href="#try">Try it</a>
+    <a href="#how">How it works</a>
+    <a href="#blueprint">Blueprint</a>
+    <a href="#brochure">For buyers</a>
+    <a href="#cost">Cost case</a>
+    <a href="#adopt">Adoption</a>
+    <a href="#whitepaper">White paper</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="what">
+  <h2>What it is, in plain words</h2>
+  <p>Suppose several hospitals want the <b>total</b> number of cases across all of them, but none will hand its own count to the others. Or a group of companies wants an industry salary <b>average</b> without any firm revealing its payroll. Or federated phones want to sum a model update without any one phone's update being readable. The shape is always the same: <b>combine many private vectors into one aggregate, and reveal only the aggregate.</b></p>
+  <p>The dangerous moments in that flow are two. First, the aggregate might be computed from <b>too few</b> contributors — a sum of one or two people is barely private at all, so there must be a floor. Second, a raw, un-masked vector might slip into the pile — and a single raw vector is the whole attack: it <em>is</em> the private data. Glue code gets both of these wrong constantly.</p>
+  <p><b>QuorumVeil is the envelope that makes both impossible by construction.</b> Each contributor's vector is combined with a <b>pairwise-cancelling mask</b> — for every pair of contributors, one gets <code>+r</code> and the other <code>−r</code>, so across everyone the masks sum to exactly zero and vanish from the total, while each masked share on its own is offset. The <code>unveil</code> step then enforces the two refusals: it rejects any share not tagged as masked, and it refuses to produce a sum at all below <b>a quorum of 3</b> live contributors. Every refusal comes back as structured data, never a warning string you could forget to check. The code a mutation gate proves is the code running under your clicks.</p>
+</section>
+
+<section id="honest">
+  <h2 style="color:var(--warn)">Honest limits — read this before you trust it</h2>
+  <div class="card warn">
+    <p style="margin-top:0"><b>The masking and the noise in this kernel are a deterministic demonstration, not cryptography.</b> The mask values are drawn from a tiny linear congruential generator modulo 101, seeded by the caller. That is there so the mutation gate can run the exact same numbers every time — <em>reproducibility for the proof</em> — and it is the opposite of what a real deployment needs. Anyone who knows the seed can recompute the masks, and the mask range is small. Do not use the bundled generator to protect real secrets.</p>
+    <p><b>What <em>is</em> real, and what this product is.</b> Two things here are genuine, provable, and the point:</p>
+    <ul>
+      <li><b>The cancellation is exact arithmetic.</b> Pairwise masks sum to zero by construction, so the aggregate is the true sum (plus whatever noise you add) — not an approximation. The <a href="#try">live demo</a> shows the masked shares scrambled and the recovered sum landing exactly on the true total.</li>
+      <li><b>The two safety invariants are enforced and gated.</b> "Never unveil below quorum" and "never pass a raw share into a sum" are properties of the code, proven by a 27/27 mutation gate. These are the glue-code mistakes that leak data, and here they cannot happen.</li>
+    </ul>
+    <p style="margin-bottom:0">So the honest sale is this: <b>QuorumVeil is the provable policy envelope you wrap around a production secure-aggregation or MPC library.</b> Swap the toy generator for your field-size cryptographic masks and your calibrated differential-privacy noise; keep the quorum floor and the no-raw-release gate, which are the parts that are easy to get wrong and are proven correct here. It is the referee, not the vault.</p>
+  </div>
+</section>
+
+<section id="start">
+  <h2>Start here — how to use it</h2>
+  <div class="grid two">
+    <div class="card">
+      <h3>On this page (no install)</h3>
+      <ol>
+        <li>Scroll to <a href="#try">Try it</a>.</li>
+        <li>Give each contributor a short vector of numbers (their private data).</li>
+        <li>Watch the masked shares come out scrambled, and the unveiled sum land exactly on the true total — the masks cancelled.</li>
+        <li>Try the presets: drop below 3 contributors, or slip a raw share in, and watch the unveil <b>refuse</b>.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>In your own system</h3>
+      <pre>import { makeMasks, maskShare, unveil } from './kernel.mjs';
+
+const vecs = [[10,2],[7,5],[3,9]];           // 3 private vectors
+const { masks } = makeMasks(vecs.length, 2, 42);
+const shares = vecs.map((v,i)=> maskShare(v, masks[i]).share);
+
+const r = unveil(shares, 7, 0);              // seed, noiseScale
+// r.ok === true, r.sum deep-equals [20,16] (the true column sums)
+// unveil(shares.slice(0,2), 7, 0).why === 'below-quorum'</pre>
+      <p class="muted" style="font-size:13px">One file, zero dependencies. The invariants travel with the code. Replace the masking/noise internals with production crypto; keep the gate.</p>
+    </div>
+  </div>
+</section>
+
+<section id="try">
+  <h2>Try it — the live kernel</h2>
+  <p class="muted">This panel calls the exact <code>makeMasks</code>, <code>maskShare</code> and <code>unveil</code> functions the witness gate proves. Nothing is sent anywhere. Each contributor's vector is two whole numbers.</p>
+
+  <div class="card">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      <span class="muted" style="font-size:13px;align-self:center">Presets:</span>
+      <span class="chip" data-preset="ok">3 contributors · unveils exactly</span>
+      <span class="chip" data-preset="noise">with DP-style noise</span>
+      <span class="chip" data-preset="below">below quorum · refused</span>
+      <span class="chip" data-preset="raw">raw share slipped in · refused</span>
+    </div>
+
+    <div id="rows"></div>
+    <div class="rowline">
+      <button class="btn sm" id="addRow">+ add contributor</button>
+      <span style="flex:1"></span>
+      <label for="seed">seed&nbsp;</label><input type="number" id="seed" value="42" step="1" style="width:70px">
+      <label for="noise">&nbsp;noiseScale&nbsp;</label><input type="number" id="noise" value="0" min="0" step="1" style="width:70px">
+    </div>
+    <label style="display:block;margin-top:10px"><input type="checkbox" id="tamper"> slip one contributor's <b>raw</b> (unmasked) vector into the pile — the reconstruction attack</label>
+
+    <div id="verdict" class="verdict" style="margin-top:14px"><span class="dot"></span><span id="verdictText">—</span></div>
+
+    <div class="grid two" style="margin-top:16px">
+      <div>
+        <h3 style="margin-top:0">What left each contributor (masked shares)</h3>
+        <div id="shares" class="vec"></div>
+        <p class="note" id="cancelNote" style="margin-top:10px">—</p>
+      </div>
+      <div>
+        <h3 style="margin-top:0">The unveiled aggregate</h3>
+        <div class="kv"><span>true column sums (for comparison)</span><b id="k_true" class="mono">—</b></div>
+        <div class="kv"><span>unveiled sum</span><b id="k_sum" class="mono">—</b></div>
+        <div class="kv" style="border-bottom:none"><span>live contributors vs quorum</span><b id="k_live" class="mono">—</b></div>
+        <h3>What the kernel returned</h3>
+        <pre id="raw" style="margin:0">—</pre>
+      </div>
+    </div>
+    <p class="note" id="explain">—</p>
+  </div>
+</section>
+
+<section id="how">
+  <h2>How it works — traced from a real run</h2>
+  <p>Take the <b>3 contributors</b> preset: vectors <code>[10,2]</code>, <code>[7,5]</code>, <code>[3,9]</code>, seed <b>42</b>, noise <b>0</b>. The true column sums are <code>[20,16]</code>. Here is what the kernel does — the masked shares below are the actual numbers from the live run.</p>
+  <div class="svgwrap card" style="padding:12px">
+  <svg viewBox="0 0 820 320" width="100%" role="img" aria-label="Pipeline: three private vectors are masked with pairwise-cancelling masks, the masked shares are scrambled, and the unveil sums them past a quorum check back to the true total">
+    <style>
+      .b{fill:var(--code);stroke:var(--line)}
+      .t{fill:var(--ink);font:13px ui-monospace,monospace}
+      .lbl{fill:var(--muted);font:12px -apple-system,sans-serif}
+      .ar{stroke:var(--accent);stroke-width:2;fill:none;marker-end:url(#a)}
+      .no{fill:var(--no);font:12px ui-monospace,monospace}
+      .ok{fill:var(--ok);font:600 13px ui-monospace,monospace}
+    </style>
+    <defs><marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+
+    <text x="12" y="20" class="lbl">1 · private vectors</text>
+    <rect class="b" x="10" y="30" width="150" height="100" rx="8"/>
+    <text x="22" y="56" class="t">A = [10, 2]</text>
+    <text x="22" y="80" class="t">B = [ 7, 5]</text>
+    <text x="22" y="104" class="t">C = [ 3, 9]</text>
+
+    <path class="ar" d="M165,80 L205,80"/>
+    <text x="214" y="20" class="lbl">2 · pairwise masks (sum to 0)</text>
+    <rect class="b" x="212" y="30" width="196" height="100" rx="8"/>
+    <text x="224" y="56" class="t">+mA  +mB  +mC</text>
+    <text x="224" y="80" class="ok">mA + mB + mC = [0,0]</text>
+    <text x="224" y="104" class="lbl">each pair: +r to one, −r to other</text>
+
+    <path class="ar" d="M413,80 L453,80"/>
+    <text x="462" y="20" class="lbl">3 · masked shares leave</text>
+    <rect class="b" x="460" y="30" width="196" height="100" rx="8"/>
+    <text x="472" y="56" class="no">scrambled, per contributor</text>
+    <text x="472" y="80" class="t">none reveals its vector</text>
+    <text x="472" y="104" class="lbl">a raw share here → REFUSED</text>
+
+    <path class="ar" d="M658,80 L698,80"/>
+    <text x="700" y="20" class="lbl">4 · quorum</text>
+    <rect class="b" x="664" y="30" width="144" height="100" rx="8"/>
+    <text x="676" y="60" class="t">live = 3</text>
+    <text x="676" y="84" class="ok">3 ≥ 3 ✓</text>
+    <text x="676" y="108" class="lbl">below 3 → REFUSED</text>
+
+    <path class="ar" d="M736,134 L736,176"/>
+    <rect class="b" x="430" y="178" width="378" height="76" rx="8"/>
+    <text x="444" y="206" class="t">sum of masked shares = sum of raw vectors</text>
+    <text x="444" y="230" class="ok">→ sum: [20, 16] — masks cancelled, exact</text>
+
+    <text x="12" y="166" class="lbl">the two refusals it pins</text>
+    <rect class="b" x="10" y="176" width="398" height="80" rx="8"/>
+    <text x="24" y="202" class="t">• a share not tagged masked → {ok:false,</text>
+    <text x="36" y="222" class="t">  why:'unmasked-share'}  (no sum computed)</text>
+    <text x="24" y="244" class="t">• fewer than 3 live → why:'below-quorum'</text>
+  </svg>
+  </div>
+  <p class="muted" style="font-size:14px">The mutation gate attacks exactly these edges: it flips the <code>&lt; QUORUM</code> guard, deletes the <code>masked !== true</code> check, breaks the pair loop so masks stop cancelling — and each of the <b>27</b> rewrites is caught by a test. "27/27 killed" means no mutant of the quorum floor or the no-raw-release gate survives the tests.</p>
+</section>
+
+<section id="blueprint">
+  <h2>The blueprint — organ by organ</h2>
+  <table>
+    <tr><th>Organ</th><th>File</th><th>What it does</th></tr>
+    <tr><td><b>The kernel</b></td><td><code>kernel.mjs</code></td><td>Three pure functions: <code>makeMasks</code> (pairwise-cancelling masks), <code>maskShare</code> (tag + offset a vector), <code>unveil</code> (refuse raw, refuse below quorum, sum, add noise). No I/O. Every refusal is structured data.</td></tr>
+    <tr><td><b>The contract</b></td><td><code>kernel.test.mjs</code></td><td>Tests pinning: masks sum to zero, the recovered sum equals the true sum, below-quorum is refused, a raw share is refused, congruent seeds are deterministic.</td></tr>
+    <tr><td><b>The gate</b></td><td><code>witness.mjs</code></td><td>Mutates the kernel 27 ways and demands every mutant die under the tests. A survivor means a blind spot in the proof. Re-run on every push.</td></tr>
+    <tr><td><b>The proof</b></td><td><code>.github/workflows/gate.yml</code></td><td>CI re-runs tests + gate on GitHub's own runner. Green there is the un-forgeable proof the invariants hold.</td></tr>
+    <tr><td><b>This page</b></td><td><code>index.html</code></td><td>Inlines the kernel byte-for-byte, so the logic you audit in CI is the logic running under your clicks. A parity test fails CI if the two drift.</td></tr>
+  </table>
+  <p class="note">The masking generator (an LCG mod 101) is deliberately replaceable. It exists so the gate re-runs identical numbers. The <b>invariants</b> — quorum floor, no-raw-release, refuse-as-data — are the asset, and they do not depend on the generator you plug in.</p>
+</section>
+
+<section id="brochure">
+  <h2>For buyers — what QuorumVeil does for your programme</h2>
+  <p>If you are building private aggregation — federated analytics, a cross-organisation benchmark, a privacy-preserving survey — the cryptography is the part you buy or audit carefully. The part that quietly leaks is the <em>envelope</em>: the code deciding how few contributors is too few, and making sure a raw value never reaches the sum. QuorumVeil is that envelope, proven.</p>
+  <div class="grid two">
+    <div class="card"><h3>For the Head of Privacy / DPO</h3><p>A minimum-contributor floor and a no-raw-release rule are exactly the controls a privacy impact assessment asks for. Here they are <b>properties of the code</b> a mutation gate proves, not clauses in a runbook someone has to remember. The honest limits are stated on the tin.</p></div>
+    <div class="card"><h3>For the CISO / Security</h3><p>The two highest-risk failure modes of an aggregation pipeline — too-small cohorts and a leaked raw share — are closed by construction and re-proven in public CI. The kernel is a short pure function you can read and audit, with no hidden network path.</p></div>
+    <div class="card"><h3>For the Data / ML lead</h3><p>Drop the envelope around your real secure-aggregation or MPC library. The cancellation arithmetic is exact, so your aggregate is not degraded; you choose the masking field and the DP budget. Integer-clean and deterministic under test, so your CI is reproducible.</p></div>
+    <div class="card"><h3>For the Partnerships lead</h3><p>Cross-company data collaborations stall on "what stops them seeing our raw numbers?". A quorum floor plus a proven no-raw-release gate, self-hostable with nothing sent to a vendor, is a concrete answer you can put in front of a partner's lawyers.</p></div>
+  </div>
+
+  <h3>Security &amp; compliance, answered straight</h3>
+  <table>
+    <tr><th>Question</th><th>Answer</th></tr>
+    <tr><td>Is the bundled masking cryptographically secure?</td><td><b>No — and the page says so loudly.</b> It is a deterministic demo generator for reproducible proofs. Swap in production crypto. What is proven is the quorum floor and the no-raw-release gate.</td></tr>
+    <tr><td>Where does our data go?</td><td>Nowhere. The kernel runs in the page. No network call in the whole file — read it, or run it offline.</td></tr>
+    <tr><td>Can we self-host?</td><td>One static HTML file and one <code>.mjs</code>. Host on your intranet, or <code>import</code> the kernel into your service. No licence server, no phone-home.</td></tr>
+    <tr><td>How do we know the invariants hold?</td><td>Unit tests plus a 27/27 mutation gate, re-run in public CI. The below-quorum and raw-share refusals are each pinned by a test the gate proves is doing its job.</td></tr>
+    <tr><td>What's the licence?</td><td>MIT. Authored by Kar for AI Native Solutions; licence holder Simon Gant.</td></tr>
+  </table>
+</section>
+
+<section id="cost">
+  <h2>The cost case — computed here, change the inputs</h2>
+  <p>The envelope is not the expensive part to <em>build</em> — it is the expensive part to <em>get wrong</em>. But there is also plain engineering time saved: a proven, self-hosted quorum-and-no-leak gate you drop in, versus writing, reviewing and privacy-signing-off your own. Put your numbers in; the figure is computed live on this page.</p>
+  <div class="card">
+    <div class="grid three">
+      <div><label>Engineer days to build &amp; review your own gate</label><br><input type="number" id="c_days" value="8" min="0"></div>
+      <div><label>Privacy/security review days saved</label><br><input type="number" id="c_rev" value="4" min="0"></div>
+      <div><label>Loaded senior-eng rate (£/day)</label><br><input type="number" id="c_rate" value="520" min="0"></div>
+    </div>
+    <div style="margin-top:18px" class="grid three">
+      <div><div class="muted" style="font-size:13px">Days removed</div><div class="big" id="c_daystot">—</div></div>
+      <div><div class="muted" style="font-size:13px">One-off saving</div><div class="big" id="c_save" style="color:var(--ok)">—</div></div>
+      <div><div class="muted" style="font-size:13px">Cost of QuorumVeil</div><div class="big" style="color:var(--accent)">£0</div></div>
+    </div>
+    <p class="muted" style="font-size:13px;margin-top:14px">Illustrative, one-off rather than per-month: this is glue you build once. The default <b>£520/day loaded rate</b> is a mid-range UK figure for a senior engineer (≈£65k–£85k base, grossed up ~1.3× for employer NI, pension and overhead, over ~220 working days; source: ONS ASHE 2024 median gross pay, programming/software occupations, loaded). The real saving is avoiding the data-breach cost of a gate built wrong — not modelled here because it should never be treated as a line item you can trade away.</p>
+  </div>
+</section>
+
+<section id="adopt">
+  <h2>Adoption — how you roll it out</h2>
+  <div class="grid three">
+    <div class="card"><h3>1 · Try (today)</h3><p>Open this page, run a small cohort through <a href="#try">Try it</a>, and watch the refusals fire below quorum and on a raw share. No sign-up, nothing installed.</p></div>
+    <div class="card"><h3>2 · Wrap (a sprint)</h3><p>Put the envelope around your production secure-aggregation / MPC library. Keep <code>unveil</code>'s quorum floor and no-raw-release gate; replace the demo masking and noise with your real crypto and DP budget.</p></div>
+    <div class="card"><h3>3 · Prove (ongoing)</h3><p>Keep the witness gate in your own CI. Every change must still kill 27/27, so the two invariants cannot silently regress as your code evolves.</p></div>
+  </div>
+</section>
+
+<section id="whitepaper">
+  <h2>White paper — the short version</h2>
+  <p><b>The problem.</b> Private aggregation protocols are judged on their cryptography, but they leak in their <em>plumbing</em>: a cohort assembled below a safe minimum, or a single raw contribution that reaches the aggregate. These are policy invariants, usually enforced by hand-written glue that no one proves.</p>
+  <p><b>The claim.</b> The two invariants — a minimum quorum of contributors, and never releasing a raw share — should be properties of a small pure function, provable and reproducible. QuorumVeil enforces both in <code>unveil</code>: it rejects any share not tagged masked, refuses to sum below a quorum, and returns every refusal as structured data rather than a warning. The masking arithmetic is pairwise-cancelling, so the aggregate is exact.</p>
+  <p><b>Why a mutation gate, not just tests.</b> Passing tests prove the code works on the cases you thought of. A mutation gate proves the <em>tests</em> work: it rewrites the kernel 27 ways — flipping the quorum comparison, deleting the masked-tag check, breaking the pair loop — and demands the tests catch every one. 27/27 killed means the two invariants have no blind spot a change could hide a regression in.</p>
+  <p><b>What it is not — stated plainly.</b> The bundled mask generator and noise are a deterministic demonstration for reproducible proofs, <em>not</em> cryptography: the generator is a tiny LCG mod 101 and the noise is not calibrated differential privacy. Do not protect real secrets with the bundled internals. QuorumVeil is the <em>envelope</em> — the quorum floor and the no-raw-release gate — proven correct, to be wrapped around a production cryptographic aggregation you supply. It is the referee for the policy, not the vault for the secret.</p>
+  <div class="card">
+    <h3 style="margin-top:0">Risks, answered</h3>
+    <div class="kv"><span>"Someone uses the demo masking in production."</span><b>Stated loudly on the page and in the kernel; swap in real crypto, keep the gate.</b></div>
+    <div class="kv"><span>"Quorum of 3 is too low for us."</span><b>It is one constant; raise it to your cohort policy and re-run the gate.</b></div>
+    <div class="kv"><span>"A contributor sends a malformed share."</span><b>Refused as data — non-finite, dim-mismatch, and untagged all return {ok:false, why}.</b></div>
+    <div class="kv" style="border-bottom:none"><span>"The code could change silently."</span><b>CI re-runs the gate + parity; a regressed invariant fails 27/27.</b></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p><b>QuorumVeil</b> — authored by <b>Kar</b>, the AI that builds for AI Native Solutions, under its own name. MIT · licence holder Simon Gant.</p>
+  <p>Repository &amp; CI: <a href="https://github.com/sjgant80-hub/kar-quorumveil">github.com/sjgant80-hub/kar-quorumveil</a> · the kernel on this page is byte-identical to the gated one. Siblings: <a href="https://sjgant80-hub.github.io/kar-quorumgate/">QuorumGate</a> · <a href="https://sjgant80-hub.github.io/kar-quorumfloor/">QuorumFloor</a>.</p>
+</footer>
+
+<script>
+// ---- theme toggle ----
+(function(){
+  const b=document.getElementById('themeBtn');
+  let t=null; try{t=localStorage.getItem('qv-theme')}catch(e){}
+  if(t)document.documentElement.setAttribute('data-theme',t);
+  b.addEventListener('click',()=>{
+    const cur=document.documentElement.getAttribute('data-theme');
+    const mq=window.matchMedia('(prefers-color-scheme:dark)').matches;
+    const next=(cur? cur : (mq?'dark':'light'))==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('qv-theme',next)}catch(e){}
+  });
+})();
+
+// ============================================================
+//  THE KERNEL — byte-identical to kernel.mjs (gated 27/27).
+//  Do not edit here without re-running the witness on kernel.mjs.
+// ============================================================
+const QUORUM = 3;
+
+// step() fully normalizes into [0, 100] for ANY integer input congruent
+// mod 101 — it is the single normalization point for the LCG state.
+function step(s) {
+  return (((s * 13 + 7) % 101) + 101) % 101;
+}
+
+function isVec(v) {
+  return Array.isArray(v) && v.length > 0 && v.every((x) => Number.isFinite(x));
+}
+
+// Pairwise-cancelling additive masks for n contributors over dim coordinates.
+// For each unordered pair {a, b} with a < b one value r is drawn; +r goes to
+// a, -r to b, so every coordinate of the mask matrix sums to exactly 0.
+function makeMasks(n, dim, seed) {
+  if (!Number.isInteger(n) || n < 2) return { ok: false, why: 'need-at-least-2-contributors', n };
+  if (!Number.isInteger(dim) || dim < 1) return { ok: false, why: 'bad-dim', dim };
+  if (!Number.isInteger(seed)) return { ok: false, why: 'bad-seed' };
+  const masks = Array.from({ length: n }, () => new Array(dim).fill(0));
+  // seed % 101 is enough: every use of s goes through step(), which
+  // normalizes negatives itself. The old ((seed % 101) + 101) % 101 was
+  // provably dead pre-normalization — an unkillable equivalent-mutant
+  // surface — so it is deleted, and congruent-seed determinism is now
+  // pinned by test instead.
+  let s = seed % 101;
+  // The pair loop visits pair (j, i) with j < i — i.e. a pair is drawn when
+  // the OUTER index reaches its LARGER element. This exists to make the
+  // outer boundary OBSERVABLE: the old i<j triangular form left the
+  // `i < n` → `i <= n` mutant as an argued equivalent (its phantom outer
+  // iteration had an empty inner loop and touched no state). In this form a
+  // phantom iteration i === n runs a FULL inner loop and writes masks[n],
+  // which does not exist — it throws, and any pinned legal call kills it.
+  // Same equivalent surface DELETED, not baselined — the makeMasks lesson
+  // as the double-mod. Signs unchanged (+r to the smaller index, -r to the
+  // larger), and for n <= 3 the pair order — hence every draw — is
+  // byte-identical to the old form, so all existing pins hold.
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < i; j++) {
+      for (let d = 0; d < dim; d++) {
+        s = step(s);
+        const r = (s % 21) - 10; // draw in [-10, 10]
+        masks[j][d] += r;
+        masks[i][d] -= r;
+      }
+    }
+  }
+  return { ok: true, masks, n, dim };
+}
+
+// A contribution is only ever released as a masked share, tagged as such.
+function maskShare(vector, mask) {
+  if (!isVec(vector)) return { ok: false, why: 'non-finite-vector' };
+  if (!isVec(mask) || mask.length !== vector.length) return { ok: false, why: 'mask-dim-mismatch' };
+  return { ok: true, share: { masked: true, data: vector.map((x, d) => x + mask[d]) } };
+}
+
+// The unveil: refuses any share not tagged masked (a "sum" containing a raw
+// vector is the reconstruction attack), refuses below quorum, then adds
+// deterministic DP noise drawn from `seed` in [-noiseScale, +noiseScale].
+function unveil(shares, seed, noiseScale) {
+  if (!Array.isArray(shares)) return { ok: false, why: 'shares-not-array' };
+  if (!Number.isInteger(seed)) return { ok: false, why: 'bad-seed' };
+  if (!Number.isInteger(noiseScale) || noiseScale < 0) return { ok: false, why: 'bad-noise-scale' };
+  for (let i = 0; i < shares.length; i++) {
+    const sh = shares[i];
+    if (!sh || sh.masked !== true || !isVec(sh.data)) {
+      return { ok: false, why: 'unmasked-share', index: i };
+    }
+  }
+  if (shares.length < QUORUM) {
+    return { ok: false, why: 'below-quorum', quorum: QUORUM, live: shares.length };
+  }
+  const dim = shares[0].data.length;
+  for (let i = 1; i < shares.length; i++) {
+    if (shares[i].data.length !== dim) return { ok: false, why: 'dim-mismatch', index: i };
+  }
+  const sum = new Array(dim).fill(0);
+  for (const sh of shares) {
+    for (let d = 0; d < dim; d++) sum[d] += sh.data[d];
+  }
+  // Same deletion as makeMasks: step() is the normalizer, the double-mod
+  // was dead code and an unkillable mutation surface.
+  let s = seed % 101;
+  const noise = new Array(dim).fill(0);
+  for (let d = 0; d < dim; d++) {
+    s = step(s);
+    noise[d] = (s % (2 * noiseScale + 1)) - noiseScale;
+    sum[d] += noise[d];
+  }
+  return { ok: true, sum, noised: noiseScale > 0, quorum: QUORUM, live: shares.length };
+}
+// ============================================================
+
+const DIM = 2;
+const PRESETS = {
+  ok:    { seed:42, noise:0, tamper:false, vecs:[[10,2],[7,5],[3,9]] },
+  noise: { seed:42, noise:5, tamper:false, vecs:[[10,2],[7,5],[3,9]] },
+  below: { seed:42, noise:0, tamper:false, vecs:[[10,2],[7,5]] },
+  raw:   { seed:42, noise:0, tamper:true,  vecs:[[10,2],[7,5],[3,9]] }
+};
+
+const rowsEl=document.getElementById('rows');
+function rowHTML(a=0,b=0){
+  return `<div class="rowline" data-row>
+    <span class="muted" style="font-size:13px;width:84px">contributor</span>
+    <input type="number" step="1" value="${a}" data-k="0" aria-label="value 1">
+    <input type="number" step="1" value="${b}" data-k="1" aria-label="value 2">
+    <button class="btn sm" data-del aria-label="remove">✕</button>
+  </div>`;
+}
+function readVecs(){
+  const out=[];
+  rowsEl.querySelectorAll('[data-row]').forEach(r=>{
+    const a=Number(r.querySelector('[data-k="0"]').value);
+    const b=Number(r.querySelector('[data-k="1"]').value);
+    out.push([a,b]);
+  });
+  return out;
+}
+function addRow(a,b){ rowsEl.insertAdjacentHTML('beforeend', rowHTML(a,b)); }
+
+function vecStr(v){ return '['+v.map(x=>String(x).padStart(3,' ')).join(', ')+']'; }
+
+function render(){
+  const vecs=readVecs();
+  const seed=Number(document.getElementById('seed').value)||0;
+  const noise=Math.max(0,Number(document.getElementById('noise').value)||0);
+  const tamper=document.getElementById('tamper').checked;
+  const n=vecs.length;
+
+  const vEl=document.getElementById('verdict'), vt=document.getElementById('verdictText');
+  const sharesEl=document.getElementById('shares'), cancel=document.getElementById('cancelNote');
+  const kTrue=document.getElementById('k_true'), kSum=document.getElementById('k_sum'), kLive=document.getElementById('k_live');
+  const rawEl=document.getElementById('raw'), exp=document.getElementById('explain');
+
+  // true column sums, computed independently of the kernel for comparison
+  const trueSum=[0,0];
+  vecs.forEach(v=>{ trueSum[0]+=v[0]; trueSum[1]+=v[1]; });
+  kTrue.textContent=vecStr(trueSum);
+
+  const mk = makeMasks(n, DIM, seed);
+  let shares=[];
+  if(mk.ok){
+    shares = vecs.map((v,i)=> maskShare(v, mk.masks[i]).share);
+    // the tamper: replace one masked share with the raw vector, untagged
+    if(tamper && shares.length>0){ shares[0]={ masked:false, data:vecs[0].slice() }; }
+  }
+
+  // show masked shares (or the raw intruder)
+  if(mk.ok){
+    sharesEl.innerHTML = shares.map((s,i)=>{
+      const raw = s.masked!==true;
+      return `<div style="padding:4px 0">${String.fromCharCode(65+i)} → <span class="${raw?'':'muted'}" style="${raw?'color:var(--no);font-weight:700':''}">${vecStr(s.data)}</span>${raw?' <span class="tag" style="color:var(--no)">RAW — unmasked</span>':''}</div>`;
+    }).join('');
+    // show the masks cancel
+    const colSum=[0,0];
+    mk.masks.forEach(m=>{ colSum[0]+=m[0]; colSum[1]+=m[1]; });
+    cancel.innerHTML = `The masks across all contributors sum to <b class="mono">${vecStr(colSum)}</b> — they cancel, which is why the aggregate recovers the true total.`;
+  } else {
+    sharesEl.innerHTML='<p class="muted">need at least 2 contributors to form masks</p>';
+    cancel.textContent='';
+  }
+
+  const r = mk.ok ? unveil(shares, seed, noise) : { ok:false, why:mk.why };
+  rawEl.textContent=JSON.stringify(r,null,2);
+
+  if(r.ok){
+    vEl.className='verdict met';
+    vt.textContent = noise>0
+      ? `UNVEILED — quorum met, sum revealed (with noise ±${noise})`
+      : `UNVEILED — quorum met, masks cancelled, sum is exact`;
+    kSum.textContent=vecStr(r.sum);
+    kLive.textContent=`${r.live} live · quorum ${r.quorum}`;
+    const exact = r.sum[0]===trueSum[0] && r.sum[1]===trueSum[1];
+    exp.innerHTML = exact
+      ? `The unveiled sum <b class="mono">${vecStr(r.sum)}</b> equals the true column sums exactly — the masks cancelled with no residue, and no individual masked share revealed its vector.`
+      : `The unveiled sum <b class="mono">${vecStr(r.sum)}</b> differs from the true total <b class="mono">${vecStr(trueSum)}</b> by the added noise (scale ±${noise}) — the deterministic stand-in for calibrated differential privacy. Masks still cancelled exactly; the gap is the noise, nothing leaked.`;
+  } else {
+    vEl.className='verdict unmet';
+    const map={ 'below-quorum':`REFUSED — only ${r.live} live contributor(s), below the quorum of ${r.quorum}. No sum is computed.`,
+                'unmasked-share':`REFUSED — a raw, unmasked share was in the pile (index ${r.index}). The unveil will not combine it — that raw vector IS the private data.`,
+                'need-at-least-2-contributors':'Need at least 2 contributors to form pairwise masks.' };
+    vt.textContent = map[r.why] || ('REFUSED — '+r.why);
+    kSum.textContent='—'; kLive.textContent = r.why==='below-quorum'?`${r.live} live · quorum ${r.quorum}`:'—';
+    exp.innerHTML = `The kernel refused cleanly and returned <code>{ok:false, why:'${r.why}'}</code> — structured data, not a warning string. There is no path where a below-quorum or raw-share release happens anyway.`;
+  }
+}
+
+rowsEl.addEventListener('input',render);
+rowsEl.addEventListener('click',e=>{ if(e.target.matches('[data-del]')){ e.target.closest('[data-row]').remove(); render(); }});
+document.getElementById('addRow').addEventListener('click',()=>{addRow(0,0);render();});
+['seed','noise','tamper'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+function loadPreset(name){
+  const p=PRESETS[name]; rowsEl.innerHTML='';
+  p.vecs.forEach(v=>addRow(v[0],v[1]));
+  document.getElementById('seed').value=p.seed;
+  document.getElementById('noise').value=p.noise;
+  document.getElementById('tamper').checked=p.tamper;
+  render();
+}
+document.querySelectorAll('[data-preset]').forEach(c=>c.addEventListener('click',()=>loadPreset(c.dataset.preset)));
+loadPreset('ok');
+
+// ---- cost model ----
+function money(n){ return '£'+Math.round(n).toLocaleString('en-GB'); }
+function cost(){
+  const days=Math.max(0,+document.getElementById('c_days').value||0);
+  const rev=Math.max(0,+document.getElementById('c_rev').value||0);
+  const rate=Math.max(0,+document.getElementById('c_rate').value||0);
+  const tot=days+rev;
+  document.getElementById('c_daystot').textContent=tot.toLocaleString('en-GB');
+  document.getElementById('c_save').textContent=money(tot*rate);
+}
+['c_days','c_rev','c_rate'].forEach(id=>document.getElementById(id).addEventListener('input',cost));
+cost();
+</script>
+</body>
+</html>

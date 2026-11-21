@@ -8,10 +8,15 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
       - name: tests
-        run: node --test kernel.test.mjs
+        run: node --test kernel.test.mjs genome.test.mjs
       - name: page inlines the gated kernel byte-for-byte
         run: node --test page-parity.test.mjs
       - name: witness must be CLEAN
         run: |
           node witness.mjs mutate kernel.mjs --timeout 30000 --cap 600 --test node --test kernel.test.mjs | tee gate.out || true
           node -e "const b=require('fs').readFileSync('gate.out','utf8');const j=JSON.parse(b.slice(b.indexOf('{'),b.lastIndexOf('}')+1));if(j.clean!==true){console.error('GATE NOT CLEAN');process.exit(1)}console.log('CLEAN '+j.killed+'/'+j.total)"
+      - name: mutation gate (witness v0.6) — genome/cell.mjs, the birth check's judge, lane and health, must be CLEAN
+        run: |
+          git clone --depth 1 --branch v0.6 https://github.com/sjgant80-hub/witness.git .witness
+          node .witness/witness.mjs mutate genome/cell.mjs --cap 100000 --timeout 60000 --test node --test genome.test.mjs | tee genome.out || true
+          node -e "const b=require('fs').readFileSync('genome.out','utf8');const j=JSON.parse(b.slice(b.indexOf('{'),b.lastIndexOf('}')+1));if(j.clean!==true||j.ignored.length!==0){console.error('GENOME GATE NOT CLEAN');process.exit(1)}console.log('CLEAN '+j.killed+'/'+j.total)"

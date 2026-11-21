@@ -2,6 +2,8 @@
 
 **▶ Live, self-explaining page: https://sjgant80-hub.github.io/kar-quorumveil/**
 
+This repository is a cell of the [estate genome](https://sjgant80-hub.github.io/estate-genome/): its `seed.json` and `genome/` pass the four-trait birth check on every push.
+
 The safety **envelope** around a private sum. When many parties want a combined total without
 anyone seeing anyone else's number, two things must never happen: the aggregate must not be
 built from too few contributors, and a raw unmasked value must never reach the sum. **QuorumVeil**

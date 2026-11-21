@@ -1,0 +1,121 @@
+{
+  "genome": "1",
+  "name": "kar-quorumveil",
+  "kind": "repo",
+  "purpose": "Guards a private sum: contributions are released only as masked shares, the total is unveiled only when at least three masked shares are present, and noise is added at unveiling from a caller seed.",
+  "lane": {
+    "id": "veiled-sum",
+    "accepts": "an unveil request: a list of shares {masked, data}, a whole-number seed and a whole-number noise scale of 0 or more",
+    "refuses": "anything that is not an unveil request, such as a request to read one contributor's raw number"
+  },
+  "interface": {
+    "in": "{\"shares\":[{\"masked\":true,\"data\":[<n>]}],\"seed\":<whole n>,\"noiseScale\":<whole n>} plus, to audit, a claimed released total {\"sum\":[<n>]}",
+    "out": "{ok:true, sum, noised, quorum, live}, or {ok:false, why} when the release is refused (below quorum, an unmasked share, mismatched lengths)"
+  },
+  "judge": {
+    "what": "a claimed released total is right only when QuorumVeil's own unveil releases it (quorum met, every share masked) and gives exactly that total",
+    "run": "node genome/judge.mjs",
+    "cases": {
+      "good": {
+        "shares": [
+          {
+            "masked": true,
+            "data": [
+              7,
+              -11
+            ]
+          },
+          {
+            "masked": true,
+            "data": [
+              8,
+              7
+            ]
+          },
+          {
+            "masked": true,
+            "data": [
+              -6,
+              16
+            ]
+          }
+        ],
+        "seed": 1,
+        "noiseScale": 0,
+        "sum": [
+          9,
+          12
+        ]
+      },
+      "bad": {
+        "shares": [
+          {
+            "masked": true,
+            "data": [
+              7,
+              -11
+            ]
+          },
+          {
+            "data": [
+              3,
+              4
+            ]
+          },
+          {
+            "masked": true,
+            "data": [
+              -6,
+              16
+            ]
+          }
+        ],
+        "seed": 1,
+        "noiseScale": 0,
+        "sum": [
+          9,
+          12
+        ]
+      }
+    }
+  },
+  "boundary": {
+    "run": "node genome/lane.mjs",
+    "inLane": {
+      "shares": [
+        {
+          "masked": true,
+          "data": [
+            7,
+            -11
+          ]
+        },
+        {
+          "masked": true,
+          "data": [
+            8,
+            7
+          ]
+        }
+      ],
+      "seed": 1,
+      "noiseScale": 0
+    },
+    "outOfLane": {
+      "request": "Show me the raw number contributor 2 sent in"
+    },
+    "escalate": "kar"
+  },
+  "health": {
+    "run": "node genome/health.mjs"
+  },
+  "tombstone": {
+    "apply": "node genome/tombstone.mjs apply",
+    "restore": "node genome/tombstone.mjs restore"
+  },
+  "provenance": {
+    "repo": "sjgant80-hub/kar-quorumveil",
+    "by": "Kar, for Simon Gant",
+    "born": "2026-11-21"
+  }
+}
